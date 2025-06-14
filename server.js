@@ -6,14 +6,13 @@ const crypto = require("crypto");
 const multer = require("multer");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
 // Redis client setup
 const redisClient = redis.createClient({
-  url: `redis://${process.env.REDIS_HOST || "localhost"}:${
-    process.env.REDIS_PORT || 6379
-  }`,
-  password: process.env.REDIS_PASSWORD || undefined,
+  url:
+    process.env.REDIS_HOST ||
+    "redis://default:vXxAJyFzSxZjQeZqHUcpXUfyvCyBVpbt@shinkansen.proxy.rlwy.net:24455",
 });
 
 redisClient.on("error", (err) => {
@@ -41,6 +40,8 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = "uploads/";
+    console.log(uploadDir, file);
+
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -52,6 +53,8 @@ const storage = multer.diskStorage({
   },
 });
 
+// Configure multer for multiple file uploads
+const MAX_FILES = 10;
 // Configure multer for multiple file uploads
 const upload = multer({
   storage: storage,
@@ -70,7 +73,6 @@ const upload = multer({
   },
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit per file
 }).array("videos", 10); // Allow up to 10 videos at once
-
 // Upload and cache multiple videos
 app.post("/upload", upload, async (req, res) => {
   try {
@@ -85,31 +87,57 @@ app.post("/upload", upload, async (req, res) => {
       const filePath = file.path;
       const fileStats = fs.statSync(filePath);
 
-      // Video metadata
+      const mimeTypeMap = {
+        ".mp4": "video/mp4",
+        ".mkv": "video/x-matroska",
+        ".avi": "video/x-msvideo",
+        ".mov": "video/quicktime",
+        ".wmv": "video/x-ms-wmv",
+        ".flv": "video/x-flv",
+        ".webm": "video/webm",
+      };
+      const extension = path.extname(file.originalname).toLowerCase();
+      const mimeType = mimeTypeMap[extension] || file.mimetype;
+
       const metadata = {
         id: videoId,
         originalName: file.originalname,
         filename: file.filename,
         size: fileStats.size,
         uploadTime: new Date().toISOString(),
-        mimetype: file.mimetype,
+        mimetype: mimeType,
         path: filePath,
       };
 
-      // Cache metadata
-      await videoCacheService.cacheVideoMetadata(videoId, metadata);
+      try {
+        // Validate video file
+        // await validateVideo(filePath);
 
-      // Cache video file in chunks
-      const cacheResult = await videoCacheService.cacheVideoFile(
-        videoId,
-        filePath
-      );
+        // Cache metadata
+        await videoCacheService.cacheVideoMetadata(videoId, metadata);
 
-      results.push({
-        videoId,
-        metadata,
-        cached: cacheResult,
-      });
+        // Cache video file in chunks
+        const cacheResult = await videoCacheService.cacheVideoFile(
+          videoId,
+          filePath
+        );
+
+        results.push({
+          videoId,
+          metadata,
+          // cached: cacheResult,
+        });
+      } catch (error) {
+        console.error(`Failed to process video ${file.originalname}:`, error);
+        results.push({
+          videoId,
+          metadata,
+          error: `Failed to process: ${error.message}`,
+        });
+      } finally {
+        // Clean up file
+        // fs.unlinkSync(filePath);
+      }
     }
 
     res.json({
@@ -118,10 +146,9 @@ app.post("/upload", upload, async (req, res) => {
     });
   } catch (error) {
     console.error("Upload error:", error);
-    res.status(500).json({ error: "Failed to upload and cache videos" });
+    res.status(500).json({ error: "Failed to process video uploads" });
   }
 });
-
 // Video caching service
 class VideoCacheService {
   constructor(redisClient) {
@@ -140,7 +167,8 @@ class VideoCacheService {
   // Cache video metadata
   async cacheVideoMetadata(videoId, metadata) {
     const key = this.generateCacheKey(videoId);
-    await this.redis.setEx(key, this.CACHE_EXPIRY, JSON.stringify(metadata));
+    console.log(key, "call");
+    await this.redis.set(key, JSON.stringify(metadata));
   }
 
   // Get video metadata from cache

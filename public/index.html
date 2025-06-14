@@ -1,0 +1,489 @@
+<!DOCTYPE html5>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Cache Test Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .upload-section {
+            border: 2px dashed #007bff;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            background-color: #f8f9fa;
+        }
+
+        .file-input {
+            margin: 20px 0;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .video-list {
+            margin-top: 30px;
+        }
+
+        .video-item {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .video-controls {
+            margin-top: 15px;
+        }
+
+        video {
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+
+        .metadata {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .upload-option {
+            margin-bottom: 20px;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #0056b3);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .bulk-results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+
+        .result-item {
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 3px;
+        }
+
+        .result-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .result-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .cache-stats {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            background-color: white;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Video Cache Test Client</h1>
+
+        <div class="upload-section">
+            <h3>Upload Videos</h3>
+
+            <div class="upload-option">
+                <h4>Single Upload</h4>
+                <div class="file-input">
+                    <input type="file" id="videoFile" accept="video/*">
+                </div>
+                <button onclick="uploadVideo()">Upload Single Video</button>
+            </div>
+
+            <div class="upload-option" style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
+                <h4>Bulk Upload (Multiple Videos)</h4>
+                <div class="file-input">
+                    <input type="file" id="bulkVideoFiles" accept="video/*" multiple>
+                </div>
+                <button onclick="uploadBulkVideos()">Upload Multiple Videos</button>
+                <div id="bulkUploadProgress" style="display: none; margin-top: 15px;">
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                    <div id="progressText"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="status"></div>
+
+        <div class="video-list">
+            <h3>Cached Videos</h3>
+            <button onclick="loadCachedVideos()">Refresh Video List</button>
+            <div id="videoList"></div>
+        </div>
+    </div>
+
+    <script>
+        let uploadedVideoId = null;
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.innerHTML = message;
+            statusDiv.style.display = 'block';
+        }
+
+        function showLoading(element, show = true) {
+            if (show) {
+                element.innerHTML = '<span class="loading"></span> Loading...';
+                element.disabled = true;
+            } else {
+                element.innerHTML = element.dataset.originalText || element.innerHTML;
+                element.disabled = false;
+            }
+        }
+
+        async function uploadBulkVideos() {
+            const fileInput = document.getElementById("bulkVideoFiles");
+            const files = fileInput.files;
+
+            if (!files || files.length === 0) {
+                showStatus("Please select at least one video file.", "error");
+                return;
+            }
+
+            const uploadButton = event.target;
+            uploadButton.dataset.originalText = uploadButton.innerHTML;
+            showLoading(uploadButton);
+
+            const progressBar = document.getElementById("progressBar");
+            const progressText = document.getElementById("progressText");
+            const bulkUploadProgress = document.getElementById("bulkUploadProgress");
+            bulkUploadProgress.style.display = "block";
+
+            const formData = new FormData();
+            for (const file of files) {
+                formData.append("videos", file);
+            }
+
+            try {
+                showStatus("Uploading and caching videos...", "info");
+                progressText.innerText = `Uploading ${files.length} video(s)...`;
+
+                const xhr = new XMLHttpRequest();
+                xhr.open("POST", "/upload", true);
+
+                xhr.upload.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const percentComplete = (event.loaded / event.total) * 100;
+                        progressBar.style.width = `${percentComplete}%`;
+                        progressText.innerText = `Uploading ${files.length} video(s)... ${percentComplete.toFixed(2)}%`;
+                    }
+                };
+
+                xhr.onload = () => {
+                    const result = JSON.parse(xhr.responseText);
+
+                    if (xhr.status === 200) {
+                        let resultsHtml = '<div class="bulk-results">';
+                        result.videos.forEach((video, index) => {
+                            resultsHtml += `
+                                <div class="result-item result-success">
+                                    Video ${index + 1}: ${video.metadata.originalName} (ID: ${video.videoId}) - Uploaded successfully
+                                </div>`;
+                        });
+                        resultsHtml += "</div>";
+
+                        showStatus(`Successfully uploaded ${result.videos.length} video(s)!`, "success");
+                        progressText.innerHTML = resultsHtml;
+                        loadCachedVideos();
+                    } else {
+                        showStatus(`Upload failed: ${result.error}`, "error");
+                        progressText.innerText = "Upload failed.";
+                    }
+                };
+
+                xhr.onerror = () => {
+                    showStatus("Upload error: Network error occurred", "error");
+                    progressText.innerText = "Error: Network error";
+                };
+
+                xhr.send(formData);
+            } catch (error) {
+                showStatus(`Upload error: ${error.message}`, "error");
+                progressText.innerText = `Error: ${error.message}`;
+            } finally {
+                showLoading(uploadButton, false);
+            }
+        }
+
+        async function uploadVideo() {
+            const fileInput = document.getElementById('videoFile');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showStatus('Please select a video file first.', 'error');
+                return;
+            }
+
+            const uploadButton = event.target;
+            uploadButton.dataset.originalText = uploadButton.innerHTML;
+            showLoading(uploadButton);
+
+            const formData = new FormData();
+            formData.append('video', file);
+
+            try {
+                showStatus('Uploading and caching video...', 'info');
+
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    uploadedVideoId = result.videoId;
+                    showStatus(`Video uploaded successfully! Video ID: ${result.videoId}`, 'success');
+                    loadCachedVideos();
+                } else {
+                    showStatus(`Upload failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`Upload error: ${error.message}`, 'error');
+            } finally {
+                showLoading(uploadButton, false);
+            }
+        }
+
+        async function loadCachedVideos() {
+            const videoListDiv = document.getElementById('videoList');
+            videoListDiv.innerHTML = '<span class="loading"></span> Loading cached videos...';
+
+            try {
+                const response = await fetch('/cache/videos');
+                const videos = await response.json();
+                console.log(videos, "videsosss");
+
+                if (videos.length === 0) {
+                    videoListDiv.innerHTML = '<p>No cached videos found.</p>';
+                    return;
+                }
+
+                let html = '';
+                videos.forEach(video => {
+                    html += `
+        <div class="video-item">
+          <h4>${video.originalName}</h4>
+          <p><strong>Size:</strong> ${formatFileSize(video.size)}</p>
+          <video controls src="/uploads/${video.filename}" onerror="this.parentNode.innerHTML += '<p style=\\"color: red;\\">Failed to load video: ' + (this.error.message || 'Unknown error') + '</p>'"></video>
+          <div class="video-controls">
+            <button onclick="getMetadata('${video.id}')">Show Metadata</button>
+            <button onclick="checkCacheStatus('${video.id}')">Check Cache Status</button>
+            <button onclick="removeFromCache('${video.id}')">Remove from Cache</button>
+          </div>
+          <div id="metadata-${video.id}"></div>
+        </div>
+      `;
+                });
+
+                videoListDiv.innerHTML = html;
+            } catch (error) {
+                videoListDiv.innerHTML = `<p style="color: red;">Error loading videos: ${error.message}</p>`;
+            }
+        }
+        async function checkCacheStatus(videoId) {
+            try {
+                const response = await fetch(`/video/${videoId}/cache-status`);
+                const status = await response.json();
+
+                showStatus(`Cache Status for ${videoId}: ${status.cached ? 'CACHED' : 'NOT CACHED'}`,
+                    status.cached ? 'success' : 'error');
+            } catch (error) {
+                showStatus(`Error checking cache status: ${error.message}`, 'error');
+            }
+        }
+
+        async function getMetadata(videoId) {
+            const metadataDiv = document.getElementById(`metadata-${videoId}`);
+            metadataDiv.innerHTML = '<span class="loading"></span> Loading metadata...';
+
+            try {
+                const response = await fetch(`/video/${videoId}/metadata`);
+                const metadata = await response.json();
+
+                if (response.ok) {
+                    metadataDiv.innerHTML = `
+                        <div class="metadata">
+                            <strong>Metadata:</strong><br>
+                            <pre>${JSON.stringify(metadata, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    metadataDiv.innerHTML = `<p style="color: red;">Error: ${metadata.error}</p>`;
+                }
+            } catch (error) {
+                metadataDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+
+        async function removeFromCache(videoId) {
+            if (!confirm('Are you sure you want to remove this video from cache?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/video/${videoId}/cache`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    showStatus(`Video ${videoId} removed from cache successfully.`, 'success');
+                    loadCachedVideos();
+                } else {
+                    showStatus(`Error removing video: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        window.onload = function () {
+            loadCachedVideos();
+        };
+    </script>
+</body>
+
+</html>

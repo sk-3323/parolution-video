@@ -3,10 +3,13 @@ const redis = require("redis");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const cors = require("cors");
 const multer = require("multer");
 
 const app = express();
 const PORT = 3000;
+
+app.use(cors({ origin: "*" }));
 
 // Redis client setup
 const redisClient = redis.createClient({
